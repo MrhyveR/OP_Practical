@@ -64,3 +64,19 @@ class User {
         this.bus.publish('userAction', { user: this.name, action: action });
     }
 }
+
+const logger = new Logger(bus);
+const notifier = new NotificationService(bus);
+const user1 = new User('Олексій', bus);
+const user2 = new User('Марія', bus);
+
+console.log('Етап ініціалізації');
+logger.startLogging();
+notifier.enableNotifications();
+
+user1.performAction('Увійшов у систему');
+
+console.log('\nЗміна налаштувань');
+notifier.disableNotifications();
+
+user2.performAction('Завантажив великий файл .jsonl');
