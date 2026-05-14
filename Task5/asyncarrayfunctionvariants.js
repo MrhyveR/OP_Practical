@@ -72,3 +72,76 @@ setTimeout(() => {
     .then(res => console.log("Результат Promise map:", res))
     .catch(err => console.error("Помилка:", err));
 }, 1000);
+
+const fetchUserData = async (id) => {
+  return new Promise(resolve => setTimeout(() => resolve(`Користувач_ID:${id}`), 300));
+};
+
+async function demoAsyncAwait() {
+  console.log("Запуск Async/Await версії");
+  const userIds = [101, 102, 103];
+  
+  try {
+    const promises = userIds.map(id => fetchUserData(id));
+    const users = await Promise.all(promises);
+    console.log("Отримані дані:", users); 
+  } catch (error) {
+    console.error("Сталася помилка при завантаженні:", error);
+  }
+}
+
+demoAsyncAwait();
+
+
+async function asyncMapAbortable(array, asyncFn, options = {}) {
+  const { signal } = options;
+
+  if (signal?.aborted) {
+    throw new Error(signal.reason || "Операція була скасована перед початком");
+  }
+
+  const promises = array.map(async (item) => {
+    if (signal?.aborted) {
+       throw new Error(signal.reason || "Операція була скасована під час виконання");
+    }
+    return await asyncFn(item, signal);
+  });
+
+  return Promise.all(promises);
+}
+
+async function demoAbortable() {
+  console.log("\nЗапуск Abortable версії");
+  
+  const controller = new AbortController();
+  const data = [10, 20, 30, 40];
+
+  const slowTask = (num, signal) => {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => resolve(num * 100), 2000);
+      
+      if (signal) {
+        signal.addEventListener('abort', () => {
+          clearTimeout(timer);
+          reject(new Error(signal.reason || "Перервано користувачем"));
+        });
+      }
+    });
+  };
+
+  try {
+    const mapPromise = asyncMapAbortable(data, slowTask, { signal: controller.signal });
+    
+    setTimeout(() => {
+      console.log("Сигнал на скасування відправлено");
+      controller.abort("Скасування за таймаутом"); 
+    }, 500);
+
+    const result = await mapPromise;
+    console.log("Успішний результат:", result);
+  } catch (error) {
+    console.error("Перехоплена помилка:", error.message);
+  }
+}
+
+setTimeout(demoAbortable, 1000);
